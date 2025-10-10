@@ -13,3 +13,5 @@ export const connectDB = async () => {
     console.log("Error while connecting to MongoDB", error);
   }
 };
+
+//kasun
