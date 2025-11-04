@@ -45,7 +45,8 @@ async function seed() {
     const startDate = lastRecord
       ? new Date(new Date(lastRecord.timestamp).getTime() + 2 * 60 * 60 * 1000)
       : baseStart;
-    const endDate = new Date(); // Now (current time)
+  // End at current time (now) so records are generated up to this moment
+  const endDate = new Date();
 
     let currentDate = new Date(startDate);
     let recordCount = 0;
