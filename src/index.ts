@@ -7,6 +7,9 @@ import energyGenerationRecordRouter from './api/energy-generation-record';
 const server = express();
 import { loggerMiddleware } from './api/middlewares/logger-middleware';
 import { globalErrorHandler } from './api/middlewares/global-error-handling-middleware';
+import cors from 'cors';
+
+server.use(cors({origin: 'http://localhost:5173'}));
 
 // Middleware
 server.use(express.json());
