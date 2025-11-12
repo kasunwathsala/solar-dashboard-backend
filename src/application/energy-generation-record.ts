@@ -1,10 +1,16 @@
+import { getAllEnergyGenerationRecordsBySolarUnitIdQueryDto } from "../domain/dtos/solar-unit";
+import { ValidationError } from "../domain/error/errors";
 import { EnergyGenerationRecord } from "../infrastructure/entities/EnergyGenerationRecord";
 import { Request, Response } from "express";
 
 export const getAllEnergyGenerationRecordsBySolarUnitId = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const groupBy = req.query.groupBy as string | undefined;
+    const results = getAllEnergyGenerationRecordsBySolarUnitIdQueryDto.safeParse(req.query);
+    if (!results.success) {
+      return res.status(400).json({ message: "Validation error", errors: results.error?.issues ?? [] });
+    }
+    const {groupBy,limit} = results.data;
 
     if (!groupBy) {
       const energyGenerationRecords = await EnergyGenerationRecord.find({
@@ -13,7 +19,7 @@ export const getAllEnergyGenerationRecordsBySolarUnitId = async (req: Request, r
       return res.status(200).json(energyGenerationRecords);
     }
 
-    if (groupBy === "date") {
+    if (groupBy === "daily") {
       const energyGenerationRecords = await EnergyGenerationRecord.aggregate([
         { $match: { solarUnitId: id } },
         {
@@ -30,7 +36,11 @@ export const getAllEnergyGenerationRecordsBySolarUnitId = async (req: Request, r
           $sort: { "_id.date": -1 },
         },
       ]);
-      return res.status(200).json(energyGenerationRecords);
+      if(!limit){
+          return res.status(200).json(energyGenerationRecords);
+      } else {
+       return res.status(200).json(energyGenerationRecords.slice(0, limit ? parseInt(limit) : energyGenerationRecords.length));
+      }
     }
 
     return res.status(400).json({ message: "Invalid groupBy value" });

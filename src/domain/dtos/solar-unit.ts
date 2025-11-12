@@ -7,3 +7,8 @@ export const createSolarUnitDto = z.object({
   status: z.enum(["ACTIVE", "INACTIVE", "MAINTENANCE"]),
   userid: z.string().min(1).max(100),
 });
+
+export const getAllEnergyGenerationRecordsBySolarUnitIdQueryDto = z.object({
+  groupBy: z.enum(["hourly", "daily", "monthly"]).optional(),
+  limit: z.string().optional(),
+});
