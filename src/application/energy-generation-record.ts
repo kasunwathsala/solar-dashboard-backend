@@ -2,6 +2,7 @@ import { getAllEnergyGenerationRecordsBySolarUnitIdQueryDto } from "../domain/dt
 import { ValidationError } from "../domain/error/errors";
 import { EnergyGenerationRecord } from "../infrastructure/entities/EnergyGenerationRecord";
 import { NextFunction, Request, Response } from "express";
+import { Types } from "mongoose";
 
 export const getAllEnergyGenerationRecordsBySolarUnitId = async (
   req: Request,
@@ -25,8 +26,8 @@ export const getAllEnergyGenerationRecordsBySolarUnitId = async (
     }
 
     if (groupBy === "daily") {
-      const energyGenerationRecords = await EnergyGenerationRecord.aggregate([
-        { $match: { solarUnitId: id } },
+      const aggregationResult = await EnergyGenerationRecord.aggregate([
+        { $match: { solarUnitId: new Types.ObjectId(id) } },
         {
           $group: {
             _id: {
@@ -41,6 +42,12 @@ export const getAllEnergyGenerationRecordsBySolarUnitId = async (
           $sort: { "_id.date": -1 },
         },
       ]);
+
+      // Transform to more frontend-friendly format
+      const energyGenerationRecords = aggregationResult.map(record => ({
+        date: record._id.date,
+        totalEnergy: record.totalEnergy
+      }));
 
       if (limit) {
         return res.status(200).json(energyGenerationRecords.slice(0, parseInt(limit)));
