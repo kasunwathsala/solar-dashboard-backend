@@ -20,12 +20,39 @@ export const getAllEnergyGenerationRecordsBySolarUnitId = async (
 
     if (!groupBy) {
       const energyGenerationRecords = await EnergyGenerationRecord.find({
-        solarUnitId: id,
+        solarUnitId: new Types.ObjectId(id),
       }).sort({ timestamp: -1 });
       return res.status(200).json(energyGenerationRecords);
     }
 
     if (groupBy === "daily") {
+      if (!limit) {
+        const aggregationResult = await EnergyGenerationRecord.aggregate([
+          { $match: { solarUnitId: new Types.ObjectId(id) } },
+          {
+            $group: {
+              _id: {
+                date: {
+                  $dateToString: { format: "%Y-%m-%d", date: "$timestamp" },
+                },
+              },
+              totalEnergy: { $sum: "$energyGenerated" },
+            },
+          },
+          {
+            $sort: { "_id.date": -1 },
+          },
+        ]);
+
+        // Transform to more frontend-friendly format
+        const energyGenerationRecords = aggregationResult.map(record => ({
+          date: record._id.date,
+          totalEnergy: record.totalEnergy
+        }));
+
+        return res.status(200).json(energyGenerationRecords);
+      }
+
       const aggregationResult = await EnergyGenerationRecord.aggregate([
         { $match: { solarUnitId: new Types.ObjectId(id) } },
         {
@@ -49,11 +76,7 @@ export const getAllEnergyGenerationRecordsBySolarUnitId = async (
         totalEnergy: record.totalEnergy
       }));
 
-      if (limit) {
-        return res.status(200).json(energyGenerationRecords.slice(0, parseInt(limit)));
-      }
-      
-      return res.status(200).json(energyGenerationRecords);
+      return res.status(200).json(energyGenerationRecords.slice(0, parseInt(limit)));
     }
 
     // Handle other groupBy options if needed
