@@ -12,21 +12,27 @@ async function seed() {
     // Connect to DB
     await connectDB();
 
+    // Check existing solar units
+    const existingSolarUnits = await SolarUnit.find({});
+    console.log(`Found ${existingSolarUnits.length} existing solar units:`, existingSolarUnits.map(su => ({ id: su._id, serialNumber: su.serialNumber })));
+
     // Clear existing data
     await EnergyGenerationRecord.deleteMany({});
-    await SolarUnit.deleteMany({});
-    await User.deleteMany({});
+    const deletedSolarUnits = await SolarUnit.deleteMany({});
+    console.log(`Deleted ${deletedSolarUnits.deletedCount} solar units`);
+    // await User.deleteMany({}); // Comment out to avoid clerkUserId validation error
 
     // Create a user
-    const user = await User.create({
-      name: "John Doe",
-      email: "john.doe@example.com",
-    });
+    // const user = await User.create({
+    //   name: "John Doe",
+    //   email: "john.doe@example.com",
+    //   clerkUserId: "clerk_user_12345",
+    // });
 
     // Create a new solar unit linked to the user
     const solarUnit = await SolarUnit.create({
-      userid: user._id,
-      serialNumber: "SU-0001",
+      // userid: user._id,
+      serialNumber: "SU-0002",
       installationDate: new Date("2025-09-21"),
       capacity: 5000,
       status: "ACTIVE",
@@ -45,8 +51,7 @@ async function seed() {
     await EnergyGenerationRecord.insertMany(records);
 
     console.log("Database seeded successfully.");
-    console.log(`Created user: ${user.name} (${user.email})`);
-    console.log(`Created solar unit: ${solarUnit.serialNumber} linked to user ${user.name}`);
+    console.log(`Created solar unit: ${solarUnit.serialNumber} with ID: ${solarUnit._id}`);
     console.log(`Created ${records.length} energy generation records`);
   } catch (err) {
     console.error("Seeding error:", err);

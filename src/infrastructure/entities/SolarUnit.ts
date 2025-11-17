@@ -14,7 +14,7 @@ const solarUnitSchema = new mongoose.Schema({
   userid: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: false,
+   
   },
   
   serialNumber: {
