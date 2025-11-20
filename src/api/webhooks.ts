@@ -56,21 +56,22 @@ webhooksRouter.post(
         });
       }
 
+      if (eventType === "user.updated") {
+        const { id } = evt.data;
+        const user = await User.findOneAndUpdate({ clerkUserId: id }, {
+          role: evt.data.public_metadata.role,
+        });
+        console.log("User updated successfully:", {
+          id: user?._id,
+          clerkUserId: id,
+          newRole: evt.data.public_metadata.role
+        });
+      }
+
       if (eventType === "user.deleted") {
         const { id } = evt.data;
-        const deletedUser = await User.findOneAndDelete({ clerkUserId: id });
-        if (deletedUser) {
-          console.log("User deleted successfully:", {
-            id: deletedUser._id,
-            firstName: deletedUser.firstName,
-            lastName: deletedUser.lastName,
-            email: deletedUser.email,
-            clerkUserId: deletedUser.clerkUserId,
-            deletedAt: new Date().toISOString()
-          });
-        } else {
-          console.log("User not found for deletion:", { clerkUserId: id });
-        }
+        await User.findOneAndDelete({ clerkUserId: id });
+        console.log("User deleted successfully:", { clerkUserId: id });
       }
 
       return res.status(200).json({ 
