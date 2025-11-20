@@ -13,24 +13,28 @@ async function seed() {
     await connectDB();
 
     // Idempotent setup: ensure a user and a solar unit exist (no deletions)
-    let user = await User.findOne({ email: "alice@example.com" });
-    if (!user) {
-      user = await User.create({
-        name: "Alice Example",
-        email: "alice@example.com",
-      });
-    }
+    // let user = await User.findOne({ email: "alice@example.com" });
+    // if (!user) {
+    //   user = await User.create({
+    //     name: "Alice Example",
+    //     email: "alice@example.com",
+    //   });
+    // }
 
-    // Ensure a solar unit exists and is linked to the user
-    let solarUnit = await SolarUnit.findOne({ serialNumber: "SU-0001" });
+    // Ensure a solar unit exists without user linkage
+    let solarUnit = await SolarUnit.findOne({ serialNumber: "SU-0004" });
     if (!solarUnit) {
       solarUnit = await SolarUnit.create({
-        userid: user._id,
-        serialNumber: "SU-0001",
-        installationDate: new Date("2025-09-21"),
-        capacity: 5000,
+        serialNumber: "SU-0004",
+        name: "Independent Solar Unit",
+        location: "Standalone Installation",
+        installationDate: new Date("2025-11-19"),
+        capacity: 7000,
         status: "ACTIVE",
       });
+      console.log(`Created new solar unit: ${solarUnit.serialNumber} (ID: ${solarUnit._id})`);
+    } else {
+      console.log(`Using existing solar unit: ${solarUnit.serialNumber} (ID: ${solarUnit._id})`);
     }
 
     // Create historical energy generation records from Aug 1, 2025 8pm up to now, every 2 hours

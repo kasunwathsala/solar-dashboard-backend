@@ -9,11 +9,14 @@ import { loggerMiddleware } from './api/middlewares/logger-middleware';
 import { globalErrorHandler } from './api/middlewares/global-error-handling-middleware';
 import webhooksRouter from './api/webhooks';
 import cors from 'cors';
+import { clerkMiddleware } from '@clerk/express';
 
 server.use(cors({origin: 'http://localhost:5173'}));
 
 // Middleware
+
 server.use('/api/webhooks', webhooksRouter);
+server.use(clerkMiddleware());
 server.use(express.json());
 
 server.use(loggerMiddleware);

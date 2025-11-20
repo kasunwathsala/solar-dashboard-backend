@@ -18,6 +18,10 @@ webhooksRouter.post(
   "/clerk",
   express.raw({ type: "application/json" }),
   async (req, res) => {
+    console.log("=== Webhook received ===");
+    console.log("Headers:", req.headers);
+    console.log("Body length:", req.body?.length);
+    
     try {
       const evt = await verifyWebhook(req);
 
@@ -26,9 +30,9 @@ webhooksRouter.post(
       const { id } = evt.data;
       const eventType = evt.type;
       console.log(
-        `Received webhook with ID ${id} and event type of ${eventType}`
+        `✅ Webhook verified - ID: ${id}, Event: ${eventType}`
       );
-      console.log("Webhook payload:", evt.data);
+      console.log("Webhook payload:", JSON.stringify(evt.data, null, 2));
 
       if (eventType === "user.created") {
         const { id } = evt.data;
@@ -69,10 +73,27 @@ webhooksRouter.post(
         }
       }
 
-      return res.send("Webhook received");
+      return res.status(200).json({ 
+        success: true, 
+        message: "Webhook processed successfully",
+        eventType,
+        userId: id 
+      });
     } catch (err) {
-      console.error("Error verifying webhook:", err);
-      return res.status(400).send("Error verifying webhook");
+      const error = err as Error;
+      console.error("❌ Webhook verification failed:", error);
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        headers: req.headers,
+        hasBody: !!req.body,
+        bodyType: typeof req.body
+      });
+      return res.status(400).json({ 
+        success: false, 
+        error: "Webhook verification failed",
+        message: error.message 
+      });
     }
   }
 );
