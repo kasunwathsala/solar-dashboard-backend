@@ -1,13 +1,3 @@
-// import express from 'express';
-// const webhooksRouter = express.Router();
-
-// webhooksRouter.post('/clerk', (req, res) => {
-//     console.log(req.body);
-//     res.status(200).send('Webhook received');
-// });
-
-// export default webhooksRouter;
-
 import express from "express";
 import { verifyWebhook } from "@clerk/express/webhooks";
 import { User } from "../infrastructure/entities/User";
@@ -18,10 +8,6 @@ webhooksRouter.post(
   "/clerk",
   express.raw({ type: "application/json" }),
   async (req, res) => {
-    console.log("=== Webhook received ===");
-    console.log("Headers:", req.headers);
-    console.log("Body length:", req.body?.length);
-    
     try {
       const evt = await verifyWebhook(req);
 
@@ -30,29 +16,22 @@ webhooksRouter.post(
       const { id } = evt.data;
       const eventType = evt.type;
       console.log(
-        `✅ Webhook verified - ID: ${id}, Event: ${eventType}`
+        `Received webhook with ID ${id} and event type of ${eventType}`
       );
-      console.log("Webhook payload:", JSON.stringify(evt.data, null, 2));
+      console.log("Webhook payload:", evt.data);
 
       if (eventType === "user.created") {
         const { id } = evt.data;
         const user = await User.findOne({ clerkUserId: id });
         if (user) {
           console.log("User already exists");
-          return res.send("User already exists");
+          return;
         }
-        const newUser = await User.create({
+        await User.create({
           firstName: evt.data.first_name,
           lastName: evt.data.last_name,
           email: evt.data.email_addresses[0].email_address,
           clerkUserId: id,
-        });
-        console.log("User created successfully:", {
-          id: newUser._id,
-          firstName: newUser.firstName,
-          lastName: newUser.lastName,
-          email: newUser.email,
-          clerkUserId: newUser.clerkUserId
         });
       }
 
@@ -61,40 +40,17 @@ webhooksRouter.post(
         const user = await User.findOneAndUpdate({ clerkUserId: id }, {
           role: evt.data.public_metadata.role,
         });
-        console.log("User updated successfully:", {
-          id: user?._id,
-          clerkUserId: id,
-          newRole: evt.data.public_metadata.role
-        });
       }
 
       if (eventType === "user.deleted") {
         const { id } = evt.data;
         await User.findOneAndDelete({ clerkUserId: id });
-        console.log("User deleted successfully:", { clerkUserId: id });
       }
 
-      return res.status(200).json({ 
-        success: true, 
-        message: "Webhook processed successfully",
-        eventType,
-        userId: id 
-      });
+      return res.send("Webhook received");
     } catch (err) {
-      const error = err as Error;
-      console.error("❌ Webhook verification failed:", error);
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        headers: req.headers,
-        hasBody: !!req.body,
-        bodyType: typeof req.body
-      });
-      return res.status(400).json({ 
-        success: false, 
-        error: "Webhook verification failed",
-        message: error.message 
-      });
+      console.error("Error verifying webhook:", err);
+      return res.status(400).send("Error verifying webhook");
     }
   }
 );

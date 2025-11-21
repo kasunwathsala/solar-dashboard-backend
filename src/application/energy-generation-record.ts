@@ -2,7 +2,6 @@ import { getAllEnergyGenerationRecordsBySolarUnitIdQueryDto } from "../domain/dt
 import { ValidationError } from "../domain/error/errors";
 import { EnergyGenerationRecord } from "../infrastructure/entities/EnergyGenerationRecord";
 import { NextFunction, Request, Response } from "express";
-import { Types } from "mongoose";
 
 export const getAllEnergyGenerationRecordsBySolarUnitId = async (
   req: Request,
@@ -20,15 +19,14 @@ export const getAllEnergyGenerationRecordsBySolarUnitId = async (
 
     if (!groupBy) {
       const energyGenerationRecords = await EnergyGenerationRecord.find({
-        solarUnitId: new Types.ObjectId(id),
+        solarUnitId: id,
       }).sort({ timestamp: -1 });
       return res.status(200).json(energyGenerationRecords);
     }
 
     if (groupBy === "daily") {
       if (!limit) {
-        const aggregationResult = await EnergyGenerationRecord.aggregate([
-          { $match: { solarUnitId: new Types.ObjectId(id) } },
+        const energyGenerationRecords = await EnergyGenerationRecord.aggregate([
           {
             $group: {
               _id: {
@@ -44,17 +42,10 @@ export const getAllEnergyGenerationRecordsBySolarUnitId = async (
           },
         ]);
 
-        // Transform to more frontend-friendly format
-        const energyGenerationRecords = aggregationResult.map(record => ({
-          date: record._id.date,
-          totalEnergy: record.totalEnergy
-        }));
-
         return res.status(200).json(energyGenerationRecords);
       }
 
-      const aggregationResult = await EnergyGenerationRecord.aggregate([
-        { $match: { solarUnitId: new Types.ObjectId(id) } },
+      const energyGenerationRecords = await EnergyGenerationRecord.aggregate([
         {
           $group: {
             _id: {
@@ -70,17 +61,11 @@ export const getAllEnergyGenerationRecordsBySolarUnitId = async (
         },
       ]);
 
-      // Transform to more frontend-friendly format
-      const energyGenerationRecords = aggregationResult.map(record => ({
-        date: record._id.date,
-        totalEnergy: record.totalEnergy
-      }));
-
-      return res.status(200).json(energyGenerationRecords.slice(0, parseInt(limit)));
+      return res.status(200).json(energyGenerationRecords.slice(0, parseInt(limit!)));
     }
 
-    // Handle other groupBy options if needed
-    return res.status(400).json({ message: "Invalid groupBy value" });
+    // Handle other groupBy options or invalid values
+    return res.status(400).json({ message: "Invalid or unsupported groupBy value" });
   } catch (error) {
     next(error);
   }
