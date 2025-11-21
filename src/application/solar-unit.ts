@@ -1,8 +1,9 @@
 import { User as ClerkUser, getAuth } from "@clerk/express";
 import { User } from "../infrastructure/entities/User";
-import { createSolarUnitDto } from "../domain/dtos/solar-unit";
+import { createSolarUnitDto,UpdateSolarUnitDto } from "../domain/dtos/solar-unit";
 import { SolarUnit } from "../infrastructure/entities/SolarUnit";
 import { Request, Response, NextFunction } from "express";
+import { ValidationError } from "../domain/error/errors";
 
 // Extend Request type for Clerk auth
 interface AuthRequest extends Request {
@@ -77,9 +78,21 @@ export const getSolarUnitById = async (req: Request, res: Response) => {
   }
 };
 
+export const updateSolarUnitValidator = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const result = UpdateSolarUnitDto.safeParse(req.body);
+  if (!result.success) {
+    throw new ValidationError(result.error.message);
+  }
+  next();
+};
+
 export const updateSolarUnit = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { serialNumber, installationDate, capacity, status } = req.body;
+  const { serialNumber, installationDate, capacity, status,userId } = req.body;
   const solarUnit = await SolarUnit.findById(id);
 
   if (!solarUnit) {
@@ -91,6 +104,7 @@ export const updateSolarUnit = async (req: Request, res: Response) => {
     installationDate,
     capacity,
     status,
+    userId
   });
 
   res.status(200).json(updatedSolarUnit);
