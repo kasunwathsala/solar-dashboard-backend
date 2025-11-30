@@ -10,6 +10,7 @@ import { globalErrorHandler } from './api/middlewares/global-error-handling-midd
 import webhooksRouter from './api/webhooks';
 import cors from 'cors';
 import { clerkMiddleware } from '@clerk/express';
+import usersRouter from "./api/users";
 
 server.use(cors({origin: 'http://localhost:5173'}));
 
@@ -23,6 +24,7 @@ server.use(loggerMiddleware);
 
 server.use('/api/solar-units', solarUnitRouter);
 server.use('/api/energy-generation-records', energyGenerationRecordRouter);
+server.use("/api/users", usersRouter);
 
 
 connectDB();
