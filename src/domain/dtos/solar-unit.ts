@@ -5,7 +5,7 @@ export const createSolarUnitDto = z.object({
   installationDate: z.string().min(1).max(100),
   capacity: z.number().min(0),
   status: z.enum(["ACTIVE", "INACTIVE", "MAINTENANCE"]),
-  userid: z.string().min(1).max(100),
+  userid: z.string().min(1).max(100).optional(),
 });
 
 export const UpdateSolarUnitDto = z.object({
@@ -13,7 +13,7 @@ export const UpdateSolarUnitDto = z.object({
   installationDate: z.string().min(1),
   capacity: z.number(),
   status: z.enum(["ACTIVE", "INACTIVE", "MAINTENANCE"]),
-  userId: z.string().min(1),
+  userid: z.string().min(1).optional(),
 });
 
 export const getAllEnergyGenerationRecordsBySolarUnitIdQueryDto = z.object({

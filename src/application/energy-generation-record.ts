@@ -2,6 +2,7 @@ import { getAllEnergyGenerationRecordsBySolarUnitIdQueryDto } from "../domain/dt
 import { ValidationError } from "../domain/error/errors";
 import { EnergyGenerationRecord } from "../infrastructure/entities/EnergyGenerationRecord";
 import { NextFunction, Request, Response } from "express";
+import mongoose from "mongoose";
 
 export const getAllEnergyGenerationRecordsBySolarUnitId = async (
   req: Request,
@@ -10,12 +11,15 @@ export const getAllEnergyGenerationRecordsBySolarUnitId = async (
 ) => {
   try {
     const { id } = req.params;
+    console.log("📊 Energy Records Request:", { id, query: req.query });
     const results = getAllEnergyGenerationRecordsBySolarUnitIdQueryDto.safeParse(req.query);
     if (!results.success) {
+      console.error("❌ Validation error:", results.error);
       throw new ValidationError(results.error.message);
     }
 
     const { groupBy, limit } = results.data;
+    console.log("✅ Parsed params:", { groupBy, limit });
 
     if (!groupBy) {
       const energyGenerationRecords = await EnergyGenerationRecord.find({
@@ -25,43 +29,35 @@ export const getAllEnergyGenerationRecordsBySolarUnitId = async (
     }
 
     if (groupBy === "daily") {
-      if (!limit) {
-        const energyGenerationRecords = await EnergyGenerationRecord.aggregate([
-          {
-            $group: {
-              _id: {
-                date: {
-                  $dateToString: { format: "%Y-%m-%d", date: "$timestamp" },
-                },
-              },
-              totalEnergy: { $sum: "$energyGenerated" },
-            },
-          },
-          {
-            $sort: { "_id.date": -1 },
-          },
-        ]);
-
-        return res.status(200).json(energyGenerationRecords);
-      }
-
-      const energyGenerationRecords = await EnergyGenerationRecord.aggregate([
+      const pipeline: any[] = [
+        { $match: { solarUnitId: new mongoose.Types.ObjectId(id) } },
         {
           $group: {
             _id: {
-              date: {
-                $dateToString: { format: "%Y-%m-%d", date: "$timestamp" },
-              },
+              $dateToString: { format: "%Y-%m-%d", date: "$timestamp" },
             },
             totalEnergy: { $sum: "$energyGenerated" },
           },
         },
         {
-          $sort: { "_id.date": -1 },
+          $sort: { "_id": -1 },
         },
-      ]);
+        {
+          $project: {
+            _id: 0,
+            date: "$_id",
+            totalEnergy: 1,
+          },
+        },
+      ];
 
-      return res.status(200).json(energyGenerationRecords.slice(0, parseInt(limit!)));
+      if (limit) {
+        pipeline.push({ $limit: parseInt(limit) });
+      }
+
+      const energyGenerationRecords = await EnergyGenerationRecord.aggregate(pipeline);
+
+      return res.status(200).json(energyGenerationRecords);
     }
 
     // Handle other groupBy options or invalid values

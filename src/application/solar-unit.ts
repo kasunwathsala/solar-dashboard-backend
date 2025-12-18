@@ -92,20 +92,31 @@ export const updateSolarUnitValidator = (
 
 export const updateSolarUnit = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { serialNumber, installationDate, capacity, status,userId } = req.body;
+  const { serialNumber, installationDate, capacity, status, userid } = req.body;
   const solarUnit = await SolarUnit.findById(id);
 
   if (!solarUnit) {
     return res.status(404).json({ message: "Solar unit not found" });
   }
 
-  const updatedSolarUnit = await SolarUnit.findByIdAndUpdate(id, {
+  const updateData: any = {
     serialNumber,
     installationDate,
     capacity,
     status,
-    userId
-  });
+  };
+
+  // Only include userid if it's provided
+  if (userid !== undefined) {
+    updateData.userid = userid;
+    
+    // If a user is being added (userid is not empty), automatically set status to ACTIVE
+    if (userid && userid.trim() !== "") {
+      updateData.status = "ACTIVE";
+    }
+  }
+
+  const updatedSolarUnit = await SolarUnit.findByIdAndUpdate(id, updateData, { new: true });
 
   res.status(200).json(updatedSolarUnit);
 };

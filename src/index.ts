@@ -2,6 +2,7 @@
 import express from 'express';
 import "dotenv/config";
 import { connectDB } from './infrastructure/db';
+import { startScheduler } from './infrastructure/scheduler';
 import solarUnitRouter from './api/solar-unit';
 import energyGenerationRecordRouter from './api/energy-generation-record';
 const server = express();
@@ -12,7 +13,7 @@ import cors from 'cors';
 import { clerkMiddleware } from '@clerk/express';
 import usersRouter from "./api/users";
 
-server.use(cors({origin: 'http://localhost:5173'}));
+server.use(cors({origin: true})); // Allow all origins in development
 
 // Middleware
 
@@ -27,7 +28,10 @@ server.use('/api/energy-generation-records', energyGenerationRecordRouter);
 server.use("/api/users", usersRouter);
 
 
-connectDB();
+connectDB().then(() => {
+    // Start background scheduler after DB connection
+    // startScheduler(); // TEMPORARILY DISABLED FOR DEBUGGING
+});
 
 server.use(globalErrorHandler);
 
