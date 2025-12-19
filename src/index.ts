@@ -13,6 +13,7 @@ import cors from 'cors';
 import { clerkMiddleware } from '@clerk/express';
 import usersRouter from "./api/users";
 import weatherRouter from './api/weather';
+import metricsRouter from './api/metrics';
 
 server.use(cors({origin: true})); // Allow all origins in development
 
@@ -28,6 +29,7 @@ server.use(loggerMiddleware);
 server.use('/api/solar-units', solarUnitRouter);
 server.use('/api/energy-generation-records', energyGenerationRecordRouter);
 server.use("/api/users", usersRouter);
+server.use('/api/metrics', metricsRouter);
 
 
 connectDB().then(() => {
