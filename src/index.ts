@@ -12,12 +12,14 @@ import webhooksRouter from './api/webhooks';
 import cors from 'cors';
 import { clerkMiddleware } from '@clerk/express';
 import usersRouter from "./api/users";
+import weatherRouter from './api/weather';
 
 server.use(cors({origin: true})); // Allow all origins in development
 
 // Middleware
 
 server.use('/api/webhooks', webhooksRouter);
+server.use('/api/weather', weatherRouter);
 server.use(clerkMiddleware());
 server.use(express.json());
 
