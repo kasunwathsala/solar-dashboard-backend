@@ -5,9 +5,19 @@ import { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2025-12-15.clover",
-});
+// Initialize Stripe with proper error handling
+const getStripe = () => {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    console.warn("⚠️ STRIPE_SECRET_KEY not found. Stripe features will be disabled.");
+    return null;
+  }
+  return new Stripe(secretKey, {
+    apiVersion: "2025-12-15.clover",
+  });
+};
+
+const stripe = getStripe();
 
 /**
  * Generate invoice number in format: INV-YYYY-MM-XXXXX
@@ -255,6 +265,11 @@ export const createCheckoutSession = async (
       ];
     }
 
+    // Check if Stripe is configured
+    if (!stripe) {
+      throw new Error("Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.");
+    }
+
     // Create Stripe Checkout Session with Embedded mode
     const session = await stripe.checkout.sessions.create({
       ui_mode: "embedded",
@@ -295,6 +310,10 @@ export const getSessionStatus = async (
       return res.status(400).json({ message: "Missing session_id" });
     }
 
+    if (!stripe) {
+      return res.status(503).json({ message: "Payment service unavailable" });
+    }
+
     const session = await stripe.checkout.sessions.retrieve(session_id as string);
 
     res.status(200).json({
@@ -320,6 +339,10 @@ export const handleStripeWebhook = async (
   try {
     const sig = req.headers["stripe-signature"] as string;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!stripe) {
+      return res.status(503).json({ message: "Payment service unavailable" });
+    }
 
     if (!webhookSecret) {
       throw new Error("STRIPE_WEBHOOK_SECRET not configured");
