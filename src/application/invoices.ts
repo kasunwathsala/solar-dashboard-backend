@@ -324,10 +324,6 @@ export const createCheckoutSession = async (
     next(error);
   }
 };
-    console.error("Error creating checkout session:", error);
-    next(error);
-  }
-};
 
 /**
  * Get Stripe Checkout Session Status
