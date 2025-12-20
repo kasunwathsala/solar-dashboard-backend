@@ -76,7 +76,7 @@ async function getDataAPIRecordCount() {
   try {
     const response = await fetch("http://localhost:8000/api/energy-generation-records/solar-unit/SU-0001");
     if (response.ok) {
-      const data = await response.json();
+      const data = await response.json() as any[];
       return data.length;
     }
   } catch (e) {

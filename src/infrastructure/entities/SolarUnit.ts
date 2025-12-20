@@ -22,6 +22,14 @@ const solarUnitSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  name: {
+    type: String,
+    required: false,
+  },
+  location: {
+    type: String,
+    required: false,
+  },
   installationDate: {
     type: Date,
     required: true,
