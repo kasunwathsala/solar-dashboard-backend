@@ -14,6 +14,8 @@ import { clerkMiddleware } from '@clerk/express';
 import usersRouter from "./api/users";
 import weatherRouter from './api/weather';
 import metricsRouter from './api/metrics';
+import invoicesRouter from './api/invoices';
+import { startInvoiceScheduler } from './infrastructure/invoice-scheduler';
 
 server.use(cors({origin: true})); // Allow all origins in development
 
@@ -21,6 +23,10 @@ server.use(cors({origin: true})); // Allow all origins in development
 
 server.use('/api/webhooks', webhooksRouter);
 server.use('/api/weather', weatherRouter);
+
+// Stripe webhook needs raw body - register BEFORE express.json()
+server.use('/api/invoices/webhook', invoicesRouter);
+
 server.use(clerkMiddleware());
 server.use(express.json());
 
@@ -30,11 +36,15 @@ server.use('/api/solar-units', solarUnitRouter);
 server.use('/api/energy-generation-records', energyGenerationRecordRouter);
 server.use("/api/users", usersRouter);
 server.use('/api/metrics', metricsRouter);
+server.use('/api/invoices', invoicesRouter);
 
 
 connectDB().then(() => {
     // Start background scheduler after DB connection
     // startScheduler(); // TEMPORARILY DISABLED FOR DEBUGGING
+    
+    // Start invoice scheduler
+    startInvoiceScheduler();
 });
 
 server.use(globalErrorHandler);

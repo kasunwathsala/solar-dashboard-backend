@@ -19,5 +19,6 @@ export const authorizationMiddleware = async (
     if (publicMetadata.role !== "admin") {
         throw new ForbiddenError("Forbidden");
     }
+    (req as any).userRole = publicMetadata.role; // Set userRole on request
     next();
 };

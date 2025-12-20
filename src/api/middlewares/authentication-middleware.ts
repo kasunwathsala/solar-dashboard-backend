@@ -17,5 +17,6 @@ export const authenticationMiddleware = (
     if (!auth.userId) {
         throw new UnauthorizedError("Unauthorized");
     }
+    (req as any).userId = auth.userId; // Set userId on request
     next();
 };
