@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { Anomaly } from "../infrastructure/entities/Anomaly";
 import { SolarUnit } from "../infrastructure/entities/SolarUnit";
+import { User } from "../infrastructure/entities/User";
 import { AnomalyDetectionService } from "./anomaly-detection";
 
 /**
@@ -221,25 +222,40 @@ export const triggerAnomalyDetection = async (
   next: NextFunction
 ) => {
   try {
-    const userId = (req as any).auth.userId;
+    console.log("🔍 Manual anomaly detection triggered");
+    const clerkUserId = (req as any).auth.userId;
+    console.log("   Clerk User ID:", clerkUserId);
 
-    // Get user's solar units
-    const units = await SolarUnit.find({ userid: userId, status: "ACTIVE" });
+    // First find the user document
+    const user = await User.findOne({ clerkUserId });
+    if (!user) {
+      console.log("   User not found in database");
+      return res.status(404).json({ message: "User not found" });
+    }
+    console.log("   User document ID:", user._id);
+
+    // Get user's solar units using the MongoDB user._id
+    const units = await SolarUnit.find({ userid: user._id, status: "ACTIVE" });
+    console.log(`   Found ${units.length} active units for user`);
 
     if (units.length === 0) {
+      console.log("   No active units found");
       return res.status(404).json({ message: "No active solar units found" });
     }
 
     // Run detection for each unit
     for (const unit of units) {
+      console.log(`   Running detection for unit: ${unit._id}`);
       await AnomalyDetectionService.detectAnomaliesForUnit(unit._id.toString());
     }
 
+    console.log("✅ Manual detection completed successfully");
     res.status(200).json({
       message: `Anomaly detection completed for ${units.length} unit(s)`,
     });
   } catch (error: any) {
-    console.error("Error triggering anomaly detection:", error.message);
+    console.error("❌ Error triggering anomaly detection:", error);
+    console.error("   Stack trace:", error.stack);
     next(error);
   }
 };
