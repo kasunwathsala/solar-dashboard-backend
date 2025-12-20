@@ -46,9 +46,17 @@ export const generateInvoiceForSolarUnit = async (
   endDate: Date
 ) => {
   try {
-    const solarUnit = await SolarUnit.findById(solarUnitId);
+    const solarUnit = await SolarUnit.findById(solarUnitId).populate('userid');
     if (!solarUnit) {
       throw new Error("Solar unit not found");
+    }
+
+    // Get Clerk user ID from the populated user
+    const user = solarUnit.userid as any;
+    const clerkUserId = user?.clerkUserId || "";
+    
+    if (!clerkUserId) {
+      console.warn(`⚠️ Solar unit ${solarUnitId} has no associated Clerk user ID`);
     }
 
     // Check if invoice already exists for this period
@@ -95,10 +103,10 @@ export const generateInvoiceForSolarUnit = async (
     // Generate unique invoice number
     const invoiceNumber = await generateInvoiceNumber();
 
-    // Create invoice
+    // Create invoice with Clerk user ID
     const invoice = await Invoice.create({
       solarUnitId: new mongoose.Types.ObjectId(solarUnitId),
-      userId: solarUnit.userid?.toString() || "",
+      userId: clerkUserId, // Use Clerk user ID instead of MongoDB ObjectId
       billingPeriod: {
         startDate,
         endDate,
@@ -111,7 +119,7 @@ export const generateInvoiceForSolarUnit = async (
       invoiceNumber,
     });
 
-    console.log(`✅ Invoice ${invoiceNumber} generated for solar unit ${solarUnitId}: ${energyGenerated.toFixed(2)} kWh, $${(totalAmount / 100).toFixed(2)}`);
+    console.log(`✅ Invoice ${invoiceNumber} generated for solar unit ${solarUnitId}: ${energyGenerated.toFixed(2)} kWh, $${(totalAmount / 100).toFixed(2)} - User: ${clerkUserId}`);
     
     return invoice;
   } catch (error) {
@@ -132,18 +140,31 @@ export const getInvoicesForUser = async (
     const userId = (req as any).userId; // From auth middleware
     const { status } = req.query;
 
+    console.log(`📝 Fetching invoices for user: ${userId}, status filter: ${status || 'ALL'}`);
+
+    if (!userId) {
+      console.error("❌ No userId in request");
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
     const filter: any = { userId };
     if (status && status !== "ALL") {
       filter.status = status;
     }
 
+    console.log(`   Query filter:`, filter);
+
     const invoices = await Invoice.find(filter)
-      .populate("solarUnitId", "serialNumber")
-      .sort({ createdAt: -1 });
+      .populate("solarUnitId", "serialNumber name")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log(`✅ Found ${invoices.length} invoice(s)`);
 
     res.status(200).json(invoices);
-  } catch (error) {
-    console.error("Error fetching user invoices:", error);
+  } catch (error: any) {
+    console.error("❌ Error fetching user invoices:", error.message);
+    console.error("   Full error:", error);
     next(error);
   }
 };
@@ -217,59 +238,65 @@ export const createCheckoutSession = async (
   next: NextFunction
 ) => {
   try {
+    console.log("📝 Creating checkout session...");
     const { invoiceId } = req.body;
     const userId = (req as any).userId;
+    
+    console.log(`   Invoice ID: ${invoiceId}`);
+    console.log(`   User ID: ${userId}`);
+
+    if (!invoiceId) {
+      console.error("❌ Invoice ID missing from request");
+      return res.status(400).json({ message: "Invoice ID is required" });
+    }
 
     const invoice = await Invoice.findById(invoiceId);
 
     if (!invoice) {
+      console.error(`❌ Invoice not found: ${invoiceId}`);
       return res.status(404).json({ message: "Invoice not found" });
     }
 
+    console.log(`   Found invoice: ${invoice.invoiceNumber}`);
+
     // Check ownership
     if (invoice.userId !== userId) {
+      console.error(`❌ Unauthorized access. Invoice userId: ${invoice.userId}, Request userId: ${userId}`);
       return res.status(403).json({ message: "Unauthorized" });
     }
 
     // Check if already paid
     if (invoice.status === "PAID") {
+      console.error(`❌ Invoice already paid: ${invoice.invoiceNumber}`);
       return res.status(400).json({ message: "Invoice already paid" });
     }
 
     // Get price ID from environment or use default rate
     const priceId = process.env.STRIPE_PRICE_ID;
     
-    let lineItems;
-    if (priceId) {
-      // Use predefined price from Stripe Dashboard
-      lineItems = [
-        {
-          price: priceId,
-          quantity: Math.round(invoice.energyGenerated), // kWh as quantity
-        },
-      ];
-    } else {
-      // Create price on the fly
-      lineItems = [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `Solar Energy Invoice ${invoice.invoiceNumber}`,
-              description: `Energy generated: ${invoice.energyGenerated} kWh (${invoice.billingPeriod?.startDate.toISOString().split('T')[0]} - ${invoice.billingPeriod?.endDate.toISOString().split('T')[0]})`,
-            },
-            unit_amount: invoice.ratePerKwh, // Rate per kWh in cents
-          },
-          quantity: Math.round(invoice.energyGenerated), // kWh quantity
-        },
-      ];
+    if (!priceId) {
+      console.error("❌ STRIPE_PRICE_ID not configured");
+      return res.status(500).json({ message: "Payment system not configured" });
     }
+    
+    console.log(`   Using Stripe Price ID: ${priceId}`);
+    console.log(`   Energy: ${invoice.energyGenerated} kWh`);
+    console.log(`   Quantity for Stripe: ${Math.round(invoice.energyGenerated)}`);
+    
+    const lineItems = [
+      {
+        price: priceId,
+        quantity: Math.round(invoice.energyGenerated), // kWh as quantity
+      },
+    ];
 
     // Check if Stripe is configured
     if (!stripe) {
+      console.error("❌ Stripe not initialized");
       throw new Error("Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.");
     }
 
+    console.log("   Creating Stripe session...");
     // Create Stripe Checkout Session with Embedded mode
     const session = await stripe.checkout.sessions.create({
       ui_mode: "embedded",
@@ -282,6 +309,8 @@ export const createCheckoutSession = async (
       },
     });
 
+    console.log(`✅ Session created: ${session.id}`);
+
     // Update invoice with session ID
     invoice.stripeCheckoutSessionId = session.id;
     await invoice.save();
@@ -289,7 +318,12 @@ export const createCheckoutSession = async (
     res.status(200).json({ 
       clientSecret: session.client_secret 
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error("❌ Error creating checkout session:", error.message);
+    console.error("   Full error:", error);
+    next(error);
+  }
+};
     console.error("Error creating checkout session:", error);
     next(error);
   }
