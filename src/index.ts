@@ -15,7 +15,9 @@ import usersRouter from "./api/users";
 import weatherRouter from './api/weather';
 import metricsRouter from './api/metrics';
 import invoicesRouter from './api/invoices';
+import anomaliesRouter from './api/anomalies';
 import { startInvoiceScheduler } from './infrastructure/invoice-scheduler';
+import { startAnomalyDetectionScheduler } from './infrastructure/anomaly-scheduler';
 
 server.use(cors({origin: true})); // Allow all origins in development
 
@@ -37,6 +39,7 @@ server.use('/api/energy-generation-records', energyGenerationRecordRouter);
 server.use("/api/users", usersRouter);
 server.use('/api/metrics', metricsRouter);
 server.use('/api/invoices', invoicesRouter);
+server.use('/api/anomalies', anomaliesRouter);
 
 
 connectDB().then(() => {
@@ -45,6 +48,9 @@ connectDB().then(() => {
     
     // Start invoice scheduler
     startInvoiceScheduler();
+    
+    // Start anomaly detection scheduler
+    startAnomalyDetectionScheduler();
 });
 
 server.use(globalErrorHandler);
