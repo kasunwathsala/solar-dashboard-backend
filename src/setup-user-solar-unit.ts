@@ -39,9 +39,9 @@ async function setupUserAndSolarUnit() {
       console.log(`   Status: ${solarUnit.status}`);
       
       // Update serial number to match data backend
-      if (solarUnit.serialNumber !== "SU-0001") {
-        console.log(`\n🔄 Updating serial number to SU-0001 to match data backend...`);
-        solarUnit.serialNumber = "SU-0001";
+      if (solarUnit.serialNumber !== "SU-TEST-2024") {
+        console.log(`\n🔄 Updating serial number to SU-TEST-2024 to match data backend...`);
+        solarUnit.serialNumber = "SU-TEST-2024";
         await solarUnit.save();
         console.log("✅ Serial number updated!");
       }
@@ -49,7 +49,7 @@ async function setupUserAndSolarUnit() {
       console.log(`\n📝 Creating new solar unit for user...`);
       solarUnit = await SolarUnit.create({
         userId: user._id,
-        serialNumber: "SU-0001", // Match data backend serial number
+        serialNumber: "SU-TEST-2024", // Match data backend serial number
         name: `${user.name}'s Solar Unit`,
         location: "Home Installation",
         installationDate: new Date("2025-08-01"),
