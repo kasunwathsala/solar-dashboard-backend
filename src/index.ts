@@ -9,6 +9,7 @@ const server = express();
 import { loggerMiddleware } from './api/middlewares/logger-middleware';
 import { globalErrorHandler } from './api/middlewares/global-error-handling-middleware';
 import webhooksRouter from './api/webhooks';
+import adminRouter from './api/admin';
 import cors from 'cors';
 import { clerkMiddleware } from '@clerk/express';
 import usersRouter from "./api/users";
@@ -40,11 +41,14 @@ server.use("/api/users", usersRouter);
 server.use('/api/metrics', metricsRouter);
 server.use('/api/invoices', invoicesRouter);
 server.use('/api/anomalies', anomaliesRouter);
+server.use('/api/admin', adminRouter);
 
 
 connectDB().then(() => {
     // Start background scheduler after DB connection
-    // startScheduler(); // TEMPORARILY DISABLED FOR DEBUGGING
+    // Start the background sync scheduler which pulls generated records
+    // from the data backend and inserts missing records into core DB.
+    startScheduler();
     
     // Start invoice scheduler
     startInvoiceScheduler();

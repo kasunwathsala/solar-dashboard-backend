@@ -33,6 +33,7 @@ async function seed() {
     const solarUnit = await SolarUnit.create({
       // userid: user._id,
       serialNumber: "SU-0002",
+      name: "Solar Unit SU-0002",
       installationDate: new Date("2025-09-21"),
       capacity: 5000,
       status: "ACTIVE",
