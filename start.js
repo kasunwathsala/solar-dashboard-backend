@@ -14,7 +14,26 @@ async function main() {
   try {
     if (!existsSync(distEntry)) {
       log('dist/index.js not found — running build...');
-      execSync('npm run build', { stdio: 'inherit' });
+
+      // Try to run the build with an increased Node heap limit to avoid
+      // `FATAL ERROR: Ineffective mark-compacts near heap limit` during tsc.
+      const buildEnv = Object.assign({}, process.env);
+      if (!buildEnv.NODE_OPTIONS) {
+        buildEnv.NODE_OPTIONS = '--max_old_space_size=4096';
+        log('Setting NODE_OPTIONS=--max_old_space_size=4096 for build');
+      }
+
+      try {
+        execSync('npm run build', { stdio: 'inherit', env: buildEnv });
+      } catch (err) {
+        console.error('Build failed during startup wrapper.');
+        console.error('If this is due to memory limits, try one of:');
+        console.error(' - Set Render env var NODE_OPTIONS=--max_old_space_size=4096');
+        console.error(' - Configure Render to run the build during the Deploy phase (Build Command: npm run build)');
+        console.error(' - Build the project locally / in CI and deploy the compiled dist/');
+        throw err;
+      }
+
       if (!existsSync(distEntry)) {
         throw new Error('Build completed but dist/index.js still missing');
       }
