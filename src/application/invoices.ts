@@ -165,7 +165,20 @@ export const getInvoicesForUser = async (
   } catch (error: any) {
     console.error("❌ Error fetching user invoices:", error.message);
     console.error("   Full error:", error);
-    next(error);
+    
+    // Return JSON error instead of letting error handler possibly return HTML
+    if (error.type === 'StripeInvalidRequestError') {
+      return res.status(400).json({ 
+        message: "Invalid request to Stripe",
+        error: error.message,
+        details: error.raw?.message || 'Check price ID and line items'
+      });
+    }
+    
+    return res.status(500).json({ 
+      message: "Failed to create checkout session",
+      error: error.message 
+    });
   }
 };
 
@@ -239,11 +252,19 @@ export const createCheckoutSession = async (
 ) => {
   try {
     console.log("📝 Creating checkout session...");
+    console.log("   Request body:", req.body);
+    console.log("   Authorization header:", req.headers.authorization ? 'Present' : 'Missing');
+    
     const { invoiceId } = req.body;
     const userId = (req as any).userId;
     
     console.log(`   Invoice ID: ${invoiceId}`);
     console.log(`   User ID: ${userId}`);
+
+    if (!userId) {
+      console.error("❌ User ID missing - authentication failed");
+      return res.status(401).json({ message: "Authentication required" });
+    }
 
     if (!invoiceId) {
       console.error("❌ Invoice ID missing from request");
@@ -321,7 +342,20 @@ export const createCheckoutSession = async (
   } catch (error: any) {
     console.error("❌ Error creating checkout session:", error.message);
     console.error("   Full error:", error);
-    next(error);
+    
+    // Return JSON error instead of letting error handler possibly return HTML
+    if (error.type === 'StripeInvalidRequestError') {
+      return res.status(400).json({ 
+        message: "Invalid request to Stripe",
+        error: error.message,
+        details: error.raw?.message || 'Check price ID and line items'
+      });
+    }
+    
+    return res.status(500).json({ 
+      message: "Failed to create checkout session",
+      error: error.message 
+    });
   }
 };
 
