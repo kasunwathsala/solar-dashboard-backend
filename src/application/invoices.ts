@@ -344,7 +344,14 @@ export const getSessionStatus = async (
       return res.status(503).json({ message: "Payment service unavailable" });
     }
 
+    console.log('Retrieving session status for:', session_id);
+    
     const session = await stripe.checkout.sessions.retrieve(session_id as string);
+
+    console.log('Session retrieved successfully:', {
+      status: session.status,
+      paymentStatus: session.payment_status
+    });
 
     res.status(200).json({
       status: session.status,
@@ -352,9 +359,21 @@ export const getSessionStatus = async (
       customerEmail: session.customer_details?.email,
       amountTotal: session.amount_total,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error retrieving session status:", error);
-    next(error);
+    
+    // Return proper JSON error instead of letting it go to error handler
+    if (error.type === 'StripeInvalidRequestError') {
+      return res.status(400).json({ 
+        message: "Invalid session ID",
+        error: error.message 
+      });
+    }
+    
+    return res.status(500).json({ 
+      message: "Failed to retrieve session status",
+      error: error.message 
+    });
   }
 };
 
