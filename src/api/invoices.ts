@@ -13,13 +13,7 @@ import { authorizationMiddleware } from "./middlewares/authorization-middleware"
 
 const invoicesRouter = express.Router();
 
-// Stripe webhook (MUST be before express.json() middleware)
-// This route is registered in index.ts BEFORE express.json()
-invoicesRouter.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  handleStripeWebhook
-);
+// Stripe webhook is registered directly in index.ts BEFORE auth/json middleware
 
 // User routes
 invoicesRouter.get(

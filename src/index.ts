@@ -9,6 +9,7 @@ const server = express();
 import { loggerMiddleware } from './api/middlewares/logger-middleware';
 import { globalErrorHandler } from './api/middlewares/global-error-handling-middleware';
 import webhooksRouter from './api/webhooks';
+import { handleStripeWebhook } from './application/invoices';
 import adminRouter from './api/admin';
 import cors from 'cors';
 import { clerkMiddleware } from '@clerk/express';
@@ -27,8 +28,8 @@ server.use(cors({origin: true})); // Allow all origins in development
 server.use('/api/webhooks', webhooksRouter);
 server.use('/api/weather', weatherRouter);
 
-// Stripe webhook needs raw body - register BEFORE express.json()
-server.use('/api/invoices/webhook', invoicesRouter);
+// Stripe webhook needs raw body - register BEFORE auth and express.json()
+server.post('/api/invoices/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
 server.use(clerkMiddleware());
 server.use(express.json());
