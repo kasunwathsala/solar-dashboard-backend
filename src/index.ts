@@ -9,7 +9,7 @@ const server = express();
 import { loggerMiddleware } from './api/middlewares/logger-middleware';
 import { globalErrorHandler } from './api/middlewares/global-error-handling-middleware';
 import webhooksRouter from './api/webhooks';
-import { handleStripeWebhook } from './application/invoices';
+import { handleStripeWebhook, getSessionStatus } from './application/invoices';
 import adminRouter from './api/admin';
 import cors from 'cors';
 import { clerkMiddleware } from '@clerk/express';
@@ -30,6 +30,13 @@ server.use('/api/weather', weatherRouter);
 
 // Stripe webhook needs raw body - register BEFORE auth and express.json()
 server.post('/api/invoices/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
+
+// Temporary public session-status endpoint for debugging payment verification
+// Register BEFORE Clerk middleware so we can confirm the route returns JSON
+server.get('/api/invoices/session-status', express.json(), (req, res, next) => {
+    console.log('[DEBUG] /api/invoices/session-status called. Authorization:', req.headers.authorization || '(none)');
+    return getSessionStatus(req as any, res as any, next as any);
+});
 
 server.use(clerkMiddleware());
 server.use(express.json());
