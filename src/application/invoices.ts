@@ -292,25 +292,25 @@ export const createCheckoutSession = async (
       return res.status(400).json({ message: "Invoice already paid" });
     }
 
-    // Get price ID from environment or use default rate
-    const priceId = process.env.STRIPE_PRICE_ID;
+    // Calculate amount in cents (Stripe requires minimum 50 cents = $0.50)
+    const amountInCents = Math.max(50, Math.round(invoice.totalAmount));
     
-    if (!priceId) {
-      console.error("❌ STRIPE_PRICE_ID not configured");
-      return res.status(500).json({ message: "Payment system not configured" });
-    }
-    
-    console.log(`   Using Stripe Price ID: ${priceId}`);
     console.log(`   Energy: ${invoice.energyGenerated} kWh`);
+    console.log(`   Rate: ${invoice.ratePerKwh} cents/kWh`);
+    console.log(`   Total Amount: $${(amountInCents / 100).toFixed(2)}`);
     
-    // Ensure quantity is at least 1 for Stripe (Stripe requires minimum 1)
-    const quantity = Math.max(1, Math.round(invoice.energyGenerated));
-    console.log(`   Quantity for Stripe: ${quantity}`);
-    
+    // Use dynamic pricing instead of pre-configured price ID
     const lineItems = [
       {
-        price: priceId,
-        quantity: quantity, // kWh as quantity (minimum 1)
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `Solar Energy Bill - ${invoice.invoiceNumber}`,
+            description: `${invoice.energyGenerated.toFixed(2)} kWh @ $${(invoice.ratePerKwh / 100).toFixed(2)}/kWh`,
+          },
+          unit_amount: amountInCents, // Amount in cents
+        },
+        quantity: 1,
       },
     ];
 
