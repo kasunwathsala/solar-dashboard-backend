@@ -302,12 +302,15 @@ export const createCheckoutSession = async (
     
     console.log(`   Using Stripe Price ID: ${priceId}`);
     console.log(`   Energy: ${invoice.energyGenerated} kWh`);
-    console.log(`   Quantity for Stripe: ${Math.round(invoice.energyGenerated)}`);
+    
+    // Ensure quantity is at least 1 for Stripe (Stripe requires minimum 1)
+    const quantity = Math.max(1, Math.round(invoice.energyGenerated));
+    console.log(`   Quantity for Stripe: ${quantity}`);
     
     const lineItems = [
       {
         price: priceId,
-        quantity: Math.round(invoice.energyGenerated), // kWh as quantity
+        quantity: quantity, // kWh as quantity (minimum 1)
       },
     ];
 
