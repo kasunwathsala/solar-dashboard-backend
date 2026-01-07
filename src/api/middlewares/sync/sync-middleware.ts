@@ -32,7 +32,8 @@ export const syncMiddleware = async (
     }
 
     // Call the solar unit data service to fetch the missing data.
-    const dataAPIResponse = await fetch(`http://localhost:8000/api/energy-generation-records/solar-unit/${solarUnit.serialNumber}`);
+    const DATA_API_BASE_URL = process.env.DATA_API_BASE_URL ?? "http://localhost:8000";
+    const dataAPIResponse = await fetch(`${DATA_API_BASE_URL}/api/energy-generation-records/solar-unit/${solarUnit.serialNumber}`);
     if (!dataAPIResponse.ok) {
         throw new Error("Failed to fetch energy generation records");
     }
