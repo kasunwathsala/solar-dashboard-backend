@@ -303,7 +303,7 @@ export const getAllAnomalies = async (
  * Get system-wide anomaly summary (admin only)
  */
 export const getAnomalySummary = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
@@ -358,7 +358,7 @@ export const getAnomalySummary = async (
  * Trigger system-wide anomaly detection (admin only)
  */
 export const triggerSystemWideDetection = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
