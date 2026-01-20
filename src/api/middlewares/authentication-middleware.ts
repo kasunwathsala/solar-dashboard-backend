@@ -1,5 +1,6 @@
 import { getAuth } from "@clerk/express";
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Response } from "express";
+import { AuthenticatedRequest } from "../../domain/types/request";
 
 class UnauthorizedError extends Error {
   constructor(message: string) {
@@ -9,7 +10,7 @@ class UnauthorizedError extends Error {
 }
 
 export const authenticationMiddleware = (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
@@ -17,6 +18,6 @@ export const authenticationMiddleware = (
     if (!auth.userId) {
         throw new UnauthorizedError("Unauthorized");
     }
-    (req as any).userId = auth.userId; // Set userId on request
+    req.userId = auth.userId; // Set userId on request
     next();
 };

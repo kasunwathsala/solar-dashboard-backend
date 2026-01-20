@@ -86,7 +86,11 @@ const AnomalySchema = new Schema<IAnomaly>(
       dropPercent: Number,
       gapDuration: Number,
       capacityFactor: Number,
-      additionalContext: Schema.Types.Mixed,
+      additionalContext: {
+        type: Map,
+        of: Schema.Types.Mixed,
+        default: {}
+      }
     },
     status: {
       type: String,

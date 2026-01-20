@@ -1,19 +1,20 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Response } from "express";
 import { Anomaly } from "../infrastructure/entities/Anomaly";
 import { SolarUnit } from "../infrastructure/entities/SolarUnit";
 import { User } from "../infrastructure/entities/User";
 import { AnomalyDetectionService } from "./anomaly-detection";
+import { AuthenticatedRequest } from "../domain/types/request";
 
 /**
  * Get anomalies for current user
  */
 export const getUserAnomalies = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const userId = (req as any).auth.userId;
+    const userId = req.auth?.userId;
     const { type, severity, status, startDate, endDate } = req.query;
 
     // Build query
@@ -45,12 +46,12 @@ export const getUserAnomalies = async (
  * Get specific anomaly details
  */
 export const getAnomalyById = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const userId = (req as any).auth.userId;
+    const userId = req.auth?.userId;
     const { id } = req.params;
 
     const anomaly = await Anomaly.findOne({ _id: id, userId }).populate(
@@ -73,12 +74,12 @@ export const getAnomalyById = async (
  * Acknowledge an anomaly
  */
 export const acknowledgeAnomaly = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const userId = (req as any).auth.userId;
+    const userId = req.auth?.userId;
     const { id } = req.params;
 
     const anomaly = await Anomaly.findOne({ _id: id, userId });
@@ -105,12 +106,12 @@ export const acknowledgeAnomaly = async (
  * Resolve an anomaly
  */
 export const resolveAnomaly = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const userId = (req as any).auth.userId;
+    const userId = req.auth?.userId;
     const { id } = req.params;
     const { resolutionNotes } = req.body;
 
@@ -141,12 +142,12 @@ export const resolveAnomaly = async (
  * Mark anomaly as false positive
  */
 export const markAsFalsePositive = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const userId = (req as any).auth.userId;
+    const userId = req.auth?.userId;
     const { id } = req.params;
     const { notes } = req.body;
 
@@ -173,12 +174,12 @@ export const markAsFalsePositive = async (
  * Get anomaly statistics for user
  */
 export const getAnomalyStats = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const userId = (req as any).auth.userId;
+    const userId = req.auth?.userId;
 
     const [
       totalCount,
@@ -217,13 +218,13 @@ export const getAnomalyStats = async (
  * Trigger manual anomaly detection for user's units
  */
 export const triggerAnomalyDetection = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     console.log("🔍 Manual anomaly detection triggered");
-    const clerkUserId = (req as any).auth.userId;
+    const clerkUserId = req.auth?.userId;
     console.log("   Clerk User ID:", clerkUserId);
 
     // First find the user document
@@ -266,7 +267,7 @@ export const triggerAnomalyDetection = async (
  * Get all anomalies (admin only)
  */
 export const getAllAnomalies = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {

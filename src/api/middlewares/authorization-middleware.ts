@@ -1,11 +1,12 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Response } from "express";
 import { getAuth } from "@clerk/express";
 import { User } from "../../infrastructure/entities/User";
 import { ForbiddenError, UnauthorizedError } from "../../domain/error/errors";
 import { UserPublicMetadata } from "../../domain/types";
+import { AuthenticatedRequest } from "../../domain/types/request";
 
 export const authorizationMiddleware = async (
-    req: Request,
+    req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
 ) => {
@@ -19,6 +20,6 @@ export const authorizationMiddleware = async (
     if (publicMetadata.role !== "admin") {
         throw new ForbiddenError("Forbidden");
     }
-    (req as any).userRole = publicMetadata.role; // Set userRole on request
+    req.userRole = publicMetadata.role === "admin" ? "ADMIN" : "USER"; // Set userRole on request
     next();
 };

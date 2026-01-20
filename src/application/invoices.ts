@@ -1,9 +1,10 @@
 import { Invoice } from "../infrastructure/entities/Invoice";
 import { SolarUnit } from "../infrastructure/entities/SolarUnit";
 import { EnergyGenerationRecord } from "../infrastructure/entities/EnergyGenerationRecord";
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Response } from "express";
 import mongoose from "mongoose";
 import Stripe from "stripe";
+import { AuthenticatedRequest } from "../domain/types/request";
 
 // Initialize Stripe with proper error handling
 const getStripe = () => {
@@ -13,7 +14,7 @@ const getStripe = () => {
     return null;
   }
   return new Stripe(secretKey, {
-    apiVersion: "2025-12-15.clover",
+    apiVersion: "2025-12-15.clover" as any,
   });
 };
 
@@ -132,12 +133,12 @@ export const generateInvoiceForSolarUnit = async (
  * Get all invoices for authenticated user
  */
 export const getInvoicesForUser = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const userId = (req as any).userId; // From auth middleware
+    const userId = req.userId; // From auth middleware
     const { status } = req.query;
 
     console.log(`📝 Fetching invoices for user: ${userId}, status filter: ${status || 'ALL'}`);
@@ -186,7 +187,7 @@ export const getInvoicesForUser = async (
  * Get all invoices (admin only)
  */
 export const getAllInvoices = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
@@ -216,13 +217,13 @@ export const getAllInvoices = async (
  * Get single invoice by ID
  */
 export const getInvoiceById = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { id } = req.params;
-    const userId = (req as any).userId;
+    const userId = req.userId;
 
     const invoice = await Invoice.findById(id).populate("solarUnitId", "serialNumber");
 
@@ -231,7 +232,7 @@ export const getInvoiceById = async (
     }
 
     // Check if user owns this invoice (unless admin)
-    if (invoice.userId !== userId && (req as any).userRole !== "ADMIN") {
+    if (invoice.userId !== userId && req.userRole !== "ADMIN") {
       return res.status(403).json({ message: "Unauthorized to view this invoice" });
     }
 
@@ -246,7 +247,7 @@ export const getInvoiceById = async (
  * Create Stripe Checkout Session for invoice payment (Embedded Checkout)
  */
 export const createCheckoutSession = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
@@ -256,7 +257,7 @@ export const createCheckoutSession = async (
     console.log("   Authorization header:", req.headers.authorization ? 'Present' : 'Missing');
     
     const { invoiceId } = req.body;
-    const userId = (req as any).userId;
+    const userId = req.userId;
     
     console.log(`   Invoice ID: ${invoiceId}`);
     console.log(`   User ID: ${userId}`);
@@ -366,7 +367,7 @@ export const createCheckoutSession = async (
  * Get Stripe Checkout Session Status
  */
 export const getSessionStatus = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
@@ -418,7 +419,7 @@ export const getSessionStatus = async (
  * Handle Stripe webhook events
  */
 export const handleStripeWebhook = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
@@ -499,7 +500,7 @@ export const handleStripeWebhook = async (
  * Generate invoice manually (admin only)
  */
 export const generateInvoiceManually = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {

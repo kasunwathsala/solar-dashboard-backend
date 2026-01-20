@@ -2,6 +2,7 @@ import { Anomaly } from "../infrastructure/entities/Anomaly";
 import { SolarUnit } from "../infrastructure/entities/SolarUnit";
 import { EnergyGenerationRecord } from "../infrastructure/entities/EnergyGenerationRecord";
 import { User } from "../infrastructure/entities/User";
+import { ANOMALY_THRESHOLDS } from "../config/anomaly-thresholds";
 
 interface AnomalyDetectionResult {
   type: string;
@@ -240,14 +241,16 @@ export class AnomalyDetectionService {
       const maxPossibleEnergy = (unit.capacity / 1000) * 24; // kW * 24 hours
       const capacityFactor = (totalEnergy / maxPossibleEnergy) * 100;
 
-      // Flag if outside 10-30% range
-      if (capacityFactor < 10 || capacityFactor > 30) {
+      // Use configurable thresholds
+      const { MIN_NORMAL, MAX_NORMAL } = ANOMALY_THRESHOLDS.CAPACITY_FACTOR;
+      if (capacityFactor < MIN_NORMAL || capacityFactor > MAX_NORMAL) {
         abnormalDays.push({ date, capacityFactor });
       }
     }
 
-    // If 3+ consecutive abnormal days, create anomaly
-    if (abnormalDays.length >= 3) {
+    // If configured consecutive abnormal days, create anomaly
+    const { CONSECUTIVE_DAYS } = ANOMALY_THRESHOLDS.CAPACITY_FACTOR;
+    if (abnormalDays.length >= CONSECUTIVE_DAYS) {
       const avgCapacityFactor =
         abnormalDays.reduce((sum, d) => sum + d.capacityFactor, 0) / abnormalDays.length;
       
@@ -286,13 +289,14 @@ export class AnomalyDetectionService {
   ): Promise<AnomalyDetectionResult[]> {
     const anomalies: AnomalyDetectionResult[] = [];
 
-    // Check for nighttime generation (11 PM - 5 AM)
+    // Check for nighttime generation using configurable threshold
+    const { THRESHOLD: nighttimeThreshold, MIN_OCCURRENCES } = ANOMALY_THRESHOLDS.NIGHTTIME;
     const nighttimeGeneration = records.filter((r) => {
       const hour = r.timestamp.getHours();
-      return (hour >= 23 || hour <= 5) && r.energyGenerated > 0.1;
+      return (hour >= 23 || hour <= 5) && r.energyGenerated > nighttimeThreshold;
     });
 
-    if (nighttimeGeneration.length >= 3) {
+    if (nighttimeGeneration.length >= MIN_OCCURRENCES) {
       anomalies.push({
         type: 'IRREGULAR_PATTERN',
         severity: 'WARNING',
