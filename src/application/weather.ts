@@ -92,7 +92,14 @@ export const getWeatherData = async (latitude: number, longitude: number): Promi
 
     return weatherData;
   } catch (error) {
-    console.error('Error fetching weather data:', error);
-    throw error;
+    console.error('❌ Error fetching weather data:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error details:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data
+      });
+    }
+    throw new Error('Failed to fetch weather data from Open-Meteo API');
   }
 };
