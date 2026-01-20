@@ -52,7 +52,8 @@ export const getWeatherData = async (latitude: number, longitude: number): Promi
     const uvIndex = current.uv_index || 0;
     const precipitation = current.precipitation || 0;
     
-    const { CLOUD_COVER_THRESHOLD, MIN_UV_INDEX } = ANOMALY_THRESHOLDS.WEATHER;
+    const CLOUD_COVER_THRESHOLD = ANOMALY_THRESHOLDS?.WEATHER?.CLOUD_COVER_THRESHOLD || 30;
+    const MIN_UV_INDEX = ANOMALY_THRESHOLDS?.WEATHER?.MIN_UV_INDEX || 3;
     const isGoodForSolar = cloudCover < CLOUD_COVER_THRESHOLD && uvIndex > MIN_UV_INDEX && precipitation === 0;
     
     let solarProductionEstimate = 'Poor';
